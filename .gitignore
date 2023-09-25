@@ -1,0 +1,27 @@
+.vscode/
+build/.cmake
+build/CMakeFiles
+build/cmake_install.cmake
+build/CMakeCache.txt
+build/compile_commands.json
+build/Makefile
+build/Testing
+
+# Old include libraries
+i686-w64-mingw32/
+x86_64-w64-mingw32/
+
+# New include libraries
+lib/
+include/
+cmake/
+*.cmake
+
+# Executables files
+*.exe
+*.dll
+
+# Archives
+*.7z
+*.tar.gz
+*.zip
