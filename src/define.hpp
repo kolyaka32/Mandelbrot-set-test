@@ -1,5 +1,5 @@
 
-#define WINDOWNAME "The Mandelbrot Set"
+#define WINDOWNAME "The Mandelbrot set "
 
 #define SCREEN_WIDTH 1000
 #define SCREEN_HEIGHT 600

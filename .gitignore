@@ -17,6 +17,12 @@ include/
 cmake/
 *.cmake
 
+# Images
+*.png
+*.jpg
+*.jpeg
+*.bmp
+
 # Executables files
 *.exe
 *.dll
