@@ -5,9 +5,8 @@
 #include "main.hpp"
 
 
-// Global variables of other
+// Global variables
 App app;
-
 
 typedef double type;
 // Screen position
@@ -15,24 +14,38 @@ type scale = 1.0;
 type x = 0.0, y = 0.0;
 type dx = 0.0, dy = 0.0;
 const type maxVal = 200.0;
-std::mutex drawMutex;
 
-/*void startCalc(float _px, float _py) {
-    float zn = 0;
-    float zi = 0;
-    for(int k = 0; k < 20 / sqrt(scale); ++k){
-        float nzn = zn * zn - zi*zi + (x+_px*scale)*0.005;
-        float nzi = 2*zn * zi + (y+_py*scale)*0.005;
+// Multithred system
+std::mutex drawMutex;
+std::thread* threads[SCREEN_HEIGHT];
+
+
+void drawPoint(float _X, float _Y) {
+    type zn = 0.0;
+    type zi = 0.0;
+    type cx = (x+_X*scale)*0.005;
+    type cy = (y+_Y*scale)*0.005;
+    for (int k = 0; k < 40; ++k) {
+        type nzn = zn * zn - zi * zi + cx;
+        type nzi = 2 * zn * zi + cy;
         zn = nzn;
         zi = nzi;
 
-        if (zn*zn+zi*zi > maxVal) {
-            SDL_SetRenderDrawColor(app.renderer, 127, 127, 127, 255);  // Drawing graph
-            SDL_RenderPoint(app.renderer, SCREEN_WIDTH/2 + _px, SCREEN_HEIGHT/2 + iq);
-            break;
+        if (abs(zn*zn+zi*zi) > maxVal) {
+            drawMutex.lock();
+            SDL_SetRenderDrawColor(app.renderer, 127, 127, 127, 255);
+            SDL_RenderPoint(app.renderer, SCREEN_WIDTH/2 + _X, SCREEN_HEIGHT/2 + _Y);
+            drawMutex.unlock();
+            return;
         }
     }
-}*/
+}
+
+void startCalc(float _Y) {
+    for (int X=-SCREEN_WIDTH/2; X<SCREEN_WIDTH/2; ++X) {
+        drawPoint(X, _Y);
+    }
+}
 
 void screenshot() {
     // Creating surface from image at screen
@@ -46,21 +59,22 @@ void screenshot() {
 }
 
 // Main function
-int main(int argv, char** args){
+int main(int argv, char** args) {
     // Initialasing main SDL libraries
     initSDL();
 
     // Initialasing objects
-    //int oldTime=SDL_GetTicks();
-    //dinamicText counter(40, SCREEN_WIDTH-200, 20);
+    /*int oldTime=SDL_GetTicks();
+    dinamicText counter(40, SCREEN_WIDTH-200, 20);*/
 
     SDL_Event event;
     // Main game cycle
 	while(app.running) {
         // Getting events
-        while( SDL_PollEvent(&event) != 0 ){  
-            if (event.type == SDL_EVENT_QUIT){
-                app.running = false;  // Exit from program
+        while (SDL_PollEvent(&event) != 0) {  
+            if (event.type == SDL_EVENT_QUIT) {
+                // Exit from program
+                app.running = false;
             }
             if (event.type == SDL_EVENT_KEY_DOWN) {
                 // Resseting field and next new generation
@@ -133,28 +147,17 @@ int main(int argv, char** args){
         SDL_RenderClear(app.renderer);
 
         // Drawing need object
-        for (int ip=-SCREEN_WIDTH/2; ip<SCREEN_WIDTH/2; ++ip) {
-            for (int iq=-SCREEN_HEIGHT/2; iq<SCREEN_HEIGHT/2; ++iq) {
-                type zn = 0.0;
-                type zi = 0.0;
-                type cx = (x+ip*scale)*0.005;
-                type cy = (y+iq*scale)*0.005;
-                for (int k = 0; k < 40; ++k) {
-                    type nzn = zn * zn - zi * zi + cx;
-                    type nzi = 2 * zn * zi + cy;
-                    zn = nzn;
-                    zi = nzi;
-
-                    if (abs(zn*zn+zi*zi) > maxVal) {
-                        SDL_SetRenderDrawColor(app.renderer, 127, 127, 127, 255);
-                        SDL_RenderPoint(app.renderer, SCREEN_WIDTH/2 + ip, SCREEN_HEIGHT/2 + iq);
-                        break;
-                    }
-                }
-            }
+        for (int Y = 0; Y < SCREEN_HEIGHT; ++Y) {
+            threads[Y] = new std::thread(startCalc, Y-SCREEN_HEIGHT/2);
         }
-        //counter.draw("Delay: "+std::to_string((SDL_GetTicks() - oldTime)), {255, 255, 255});
-        //oldTime = SDL_GetTicks();
+        for (int Y = 0; Y < SCREEN_HEIGHT; ++Y) {
+            threads[Y]->join();
+            delete threads[Y];
+        }
+        /*char delayText[100];
+        snprintf(delayText, sizeof(delayText), "Delay: %d", SDL_GetTicks() - oldTime);
+        counter.draw(delayText, {255, 255, 255});
+        oldTime = SDL_GetTicks();*/
         SDL_RenderPresent(app.renderer);
 	}
 
