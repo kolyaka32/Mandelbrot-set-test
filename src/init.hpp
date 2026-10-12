@@ -5,6 +5,7 @@
 #include "define.hpp"
 #include "structs.hpp"
 
+
 // Function of initialasing 
 void initSDL();
 

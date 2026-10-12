@@ -1,48 +1,29 @@
+# Setting minimum required for cmake versions
 cmake_minimum_required(VERSION 3.10)
 
-project(base)
+# Setting minimal c++ version for work
+set(CMAKE_CXX_STANDARD 14)
 
-# Set source files
-add_executable( ${PROJECT_NAME}
-    # Base includes and defines
-    src/include.hpp
-    src/define.hpp
-    src/structs.hpp
+# Creating project
+project(Maldebrot)
 
-    # Function of initialasing all data
-    src/init.hpp
-    src/init.cpp
+# Add all source files (that needed) under the src directory
+file(GLOB_RECURSE SOURCES RELATIVE ${CMAKE_SOURCE_DIR} "src/*.cpp" "src/*.rc")
+add_executable(${PROJECT_NAME} ${SOURCES})
 
-    # Extra math functions
-    src/perlin.hpp
-    src/baseHud.hpp
-    src/baseHud.cpp
+# Building depending on platform
+if (WIN32)
+    # Hidding console on windows
+    set(CMAKE_CXX_FLAGS "-mwindows")
+    # Setting to link standart libraries statickly
+    set(CMAKE_EXE_LINKER_FLAGS "-static-libgcc -static-libstdc++")
+endif (WIN32)
 
-    # Main function
-    src/main.hpp
-    src/main.cpp
-    
-)
-# Setting static dlls
-set(CMAKE_CXX_STANDARD_LIBRARIES "-static-libgcc -static-libstdc++ -lwsock32 -lws2_32 -mwindows ${CMAKE_CSS_STANDARD_LIBRARIES}")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive")
+# Look for a SDL3 package
+find_package(SDL3 REQUIRED)
+find_package(SDL3_image REQUIRED)
+find_package(SDL3_ttf REQUIRED)
+find_package(SDL3_mixer REQUIRED)
 
-# Including external libraries
-set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
-find_package(SDL2 REQUIRED)
-find_package(SDL2_image REQUIRED)
-find_package(SDL2_ttf REQUIRED)
-find_package(SDL2_mixer REQUIRED)
-
-
-target_include_directories( ${PROJECT_NAME}
-    PUBLIC ${SDL2_INCLUDE_DIRS}
-    PUBLIC ${SDL2_image_INCLUDE_DIRS}
-    PUBLIC ${SDL2_ttf_config_path}
-    PUBLIC ${SDL2_mixer_config_path}
-)
-
-target_link_libraries(base PUBLIC ${SDL2_LIBRARIES} SDL2_image::SDL2_image mingw32)
-target_link_libraries(base PUBLIC ${SDL2_LIBRARIES} SDL2_ttf::SDL2_ttf mingw32)
-target_link_libraries(base PUBLIC ${SDL2_LIBRARIES} SDL2_mixer::SDL2_mixer mingw32)
+# Link to the actual SDL3 library.
+target_link_libraries(${PROJECT_NAME} PRIVATE SDL3_mixer::SDL3_mixer SDL3_ttf::SDL3_ttf SDL3_image::SDL3_image SDL3::SDL3)

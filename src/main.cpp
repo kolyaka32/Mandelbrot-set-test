@@ -1,10 +1,6 @@
-#include "include.hpp"
-#include "define.hpp"
-#include "structs.hpp"
-
-#include "init.hpp"
-#include "perlin.hpp"
-#include "baseHud.hpp"
+#include <thread>
+#include <mutex>
+#include <math.h>
 
 #include "main.hpp"
 
@@ -12,117 +8,155 @@
 // Global variables of other
 App app;
 
-// Flags of running
-bool running = true;  // Flag of main cycle work
 
+typedef double type;
+// Screen position
+type scale = 1.0;
+type x = 0.0, y = 0.0;
+type dx = 0.0, dy = 0.0;
+const type maxVal = 200.0;
+std::mutex drawMutex;
 
-//const siv::PerlinNoise perlin;
+/*void startCalc(float _px, float _py) {
+    float zn = 0;
+    float zi = 0;
+    for(int k = 0; k < 20 / sqrt(scale); ++k){
+        float nzn = zn * zn - zi*zi + (x+_px*scale)*0.005;
+        float nzi = 2*zn * zi + (y+_py*scale)*0.005;
+        zn = nzn;
+        zi = nzi;
+
+        if (zn*zn+zi*zi > maxVal) {
+            SDL_SetRenderDrawColor(app.renderer, 127, 127, 127, 255);  // Drawing graph
+            SDL_RenderPoint(app.renderer, SCREEN_WIDTH/2 + _px, SCREEN_HEIGHT/2 + iq);
+            break;
+        }
+    }
+}*/
+
+void screenshot() {
+    // Creating surface from image at screen
+    SDL_Surface* surface = SDL_RenderReadPixels(app.renderer, nullptr);
+    // Creating name
+    char name[100];
+    snprintf(name, sizeof(name), "Image at %f %f.png", x, y);
+    // Saving surface at file
+    IMG_SavePNG(surface, name);
+    SDL_DestroySurface(surface);
+}
 
 // Main function
 int main(int argv, char** args){
-    initSDL();  // Initialasing of main SDL library
-    
-
-    SDL_Event event;
-
-    //const siv::PerlinNoise::seed_type seed = Perseed;
-	//const siv::PerlinNoise perlin{ seed };
-
-    
+    // Initialasing main SDL libraries
+    initSDL();
 
     // Initialasing objects
+    //int oldTime=SDL_GetTicks();
+    //dinamicText counter(40, SCREEN_WIDTH-200, 20);
 
-    int oldTime=SDL_GetTicks();
-    dinamicText counter(40, SCREEN_WIDTH-200, 20);
-    float x=0, y=0;
-    int dx=0, dy=0;
-    float scale=1;
-
-    SDL_Surface* surface = SDL_CreateRGBSurface(0, SCREEN_WIDTH, SCREEN_HEIGHT, 32, 0, 0, 0, 0);
-
+    SDL_Event event;
     // Main game cycle
-	while(running)
-	{
+	while(app.running) {
         // Getting events
         while( SDL_PollEvent(&event) != 0 ){  
-            if (event.type == SDL_QUIT){
-                running = false;  // Exit from program
+            if (event.type == SDL_EVENT_QUIT){
+                app.running = false;  // Exit from program
             }
-            if (event.type == SDL_KEYDOWN) {
+            if (event.type == SDL_EVENT_KEY_DOWN) {
                 // Resseting field and next new generation
-                if (event.key.keysym.sym == SDLK_LEFT || event.key.keysym.sym == SDLK_a){
+                switch (event.key.key) {
+                case SDLK_LEFT:
+                case SDLK_A:
                     dx = -10;
-                }
-                if (event.key.keysym.sym == SDLK_RIGHT || event.key.keysym.sym == SDLK_d){
-                    dx = 10;
-                }
-                if (event.key.keysym.sym == SDLK_UP || event.key.keysym.sym == SDLK_w){
-                    dy = 10;
-                }
-                if (event.key.keysym.sym == SDLK_DOWN || event.key.keysym.sym == SDLK_s){
-                    dy = -10;
-                }
-                if (event.key.keysym.sym == SDLK_PLUS || event.key.keysym.sym == SDLK_1 || event.key.keysym.sym == SDLK_KP_PLUS){
-                    scale /= 1.2;
-                    //x /= 1.2; y/=1.2;
-                }
-                if (event.key.keysym.sym == SDLK_MINUS || event.key.keysym.sym == SDLK_2 || event.key.keysym.sym == SDLK_KP_MINUS){
-                    scale *= 1.2;
-                    //x *= 1.2; y*=1.2;
-                }
-                if (event.key.keysym.sym == SDLK_e){
-                    SDL_RenderReadPixels(app.renderer, NULL, surface->format->format, surface->pixels, surface->pitch);
-                    //SDL_SaveBMP(surface, "file.bmp");
+                    break;
 
-                    //std::string name = "file at" + std::to_string(int(x)) + "x" + std::to_string(int(y)) + ".png";
-                    
-                    IMG_SavePNG(surface, ("Image at " + std::to_string(int(x)) + " " + std::to_string(int(y)) + ".png").std::string::c_str());
-                    
+                case SDLK_RIGHT:
+                case SDLK_D:
+                    dx = 10;
+                    break;
+
+                case SDLK_UP:
+                case SDLK_W:
+                    dy = 10;
+                    break;
+
+                case SDLK_DOWN:
+                case SDLK_S:
+                    dy = -10;
+                    break;
+
+                case SDLK_PLUS:
+                case SDLK_KP_PLUS:
+                    scale /= 1.2;
+                    break;
+
+                case SDLK_MINUS:
+                case SDLK_KP_MINUS:
+                    scale *= 1.2;
+                    break;
+
+                case SDLK_E:
+                    screenshot();
+                    break;
+
+                default:
+                    break;
                 }
             }
-            if (event.type == SDL_KEYUP) {
-                if (event.key.keysym.sym == SDLK_LEFT || event.key.keysym.sym == SDLK_RIGHT 
-                || event.key.keysym.sym == SDLK_a || event.key.keysym.sym == SDLK_d) {
+            if (event.type == SDL_EVENT_KEY_UP) {
+                switch (event.key.key) {
+                case SDLK_LEFT:
+                case SDLK_RIGHT:
+                case SDLK_A:
+                case SDLK_D:
                     dx = 0;
-                }
-                if (event.key.keysym.sym == SDLK_UP || event.key.keysym.sym == SDLK_w || 
-                event.key.keysym.sym == SDLK_DOWN || event.key.keysym.sym == SDLK_s){
+                    break;
+
+                case SDLK_UP:
+                case SDLK_DOWN:
+                case SDLK_W:
+                case SDLK_S:
                     dy = 0;
+                    break;
+
+                default:
+                    break;
                 }
             }
         }
+        // Camera movement
+        x += dx * scale;
+        y -= dy * scale;
 
-        // Updating on screen objects
-        x+=dx*scale; y-=dy*scale;
-        
-        // Drawing objects at screen
-        SDL_SetRenderDrawColor(app.renderer, 0, 0, 0, 255);  // Drawing surrounding
-        SDL_RenderClear(app.renderer);  
-        
+        // Drawing
+        SDL_SetRenderDrawColor(app.renderer, 0, 0, 0, 255);
+        SDL_RenderClear(app.renderer);
+
         // Drawing need object
-        for(int ip=-SCREEN_WIDTH/2; ip<SCREEN_WIDTH/2; ++ip){
-            for(int iq=-SCREEN_HEIGHT/2; iq<SCREEN_HEIGHT/2; ++iq){
-                
-                float zn = 0; float zi = 0;
-                for(int k=0; k<20 / sqrt(scale); ++k){
-                    float nzn = zn * zn - zi*zi + (x+ip*scale)*0.005;
-                    float nzi = 2*zn * zi + (y+iq*scale)*0.005;
-                    zn = nzn; zi = nzi;
-                    
-                    if(abs(zn*zn+zi*zi) > 1000){
-                        SDL_SetRenderDrawColor(app.renderer, zn, zi, 0, 255);  // Drawing graph
-                        SDL_RenderDrawPoint(app.renderer, SCREEN_WIDTH/2 + ip, SCREEN_HEIGHT/2 + iq);
+        for (int ip=-SCREEN_WIDTH/2; ip<SCREEN_WIDTH/2; ++ip) {
+            for (int iq=-SCREEN_HEIGHT/2; iq<SCREEN_HEIGHT/2; ++iq) {
+                type zn = 0.0;
+                type zi = 0.0;
+                type cx = (x+ip*scale)*0.005;
+                type cy = (y+iq*scale)*0.005;
+                for (int k = 0; k < 40; ++k) {
+                    type nzn = zn * zn - zi * zi + cx;
+                    type nzi = 2 * zn * zi + cy;
+                    zn = nzn;
+                    zi = nzi;
+
+                    if (abs(zn*zn+zi*zi) > maxVal) {
+                        SDL_SetRenderDrawColor(app.renderer, 127, 127, 127, 255);
+                        SDL_RenderPoint(app.renderer, SCREEN_WIDTH/2 + ip, SCREEN_HEIGHT/2 + iq);
                         break;
                     }
                 }
             }
         }
-        counter.draw("Delay: "+std::to_string((SDL_GetTicks() - oldTime)), {255, 255, 255});
-        oldTime = SDL_GetTicks();
-        
-        SDL_RenderPresent(app.renderer);  // Blitting textures on screen
+        //counter.draw("Delay: "+std::to_string((SDL_GetTicks() - oldTime)), {255, 255, 255});
+        //oldTime = SDL_GetTicks();
+        SDL_RenderPresent(app.renderer);
 	}
-    SDL_FreeSurface(surface);
 
     // Cleaning all data
     cleanup();

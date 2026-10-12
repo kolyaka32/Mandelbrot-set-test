@@ -1,14 +1,15 @@
-// Base in-game global structs
+
 #pragma once
 
 #include "include.hpp"
 
-struct App{
+
+struct App {
     SDL_Renderer *renderer;
     SDL_Window *window;
+
+    // Flag of main cycle work
+    bool running;
 };
 
-extern App app;  // Creating main varables
-
-// Texts variables and constants
-//extern SDL_Texture *Textures[IMG_count];  // Array of all textures
+extern App app;
